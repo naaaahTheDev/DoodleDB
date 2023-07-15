@@ -1,0 +1,23 @@
+{
+  "name": "doodledb",
+  "version": "0.0.1",
+  "description": "A lightweight database that can be used while testing, allowing you to quickly \"doodle\" information into the DB and use it quickly, simply, and at any time",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "js",
+    "database",
+    "json",
+    "document",
+    "nosql",
+    "document-type-database"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.3.0"
+  }
+}
