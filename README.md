@@ -60,54 +60,89 @@ database.delSet(filePath, dataArrayName, objectID);
 ```
 
 ## Functions
-`push(filePath, dataArrayName, data)`
+```js
+push(filePath, dataArrayName, data)
+```
 This function adds new data to the specified JSON file. It takes the following parameters:
 
 `filePath` (string): The path to the JSON file.
+
 `dataArrayName` (string): The name of the array in which the data should be stored.
+
 `data` (object): The data to be added to the JSON file.
 
 
-`get(filePath, dataArrayName, searchQuery, callback)`
+
+
+```js
+get(filePath, dataArrayName, searchQuery, callback)
+```
 This function retrieves data from the specified JSON file based on a search query. It takes the following parameters:
 
 `filePath` (string): The path to the JSON file.
+
 `dataArrayName` (string): The name of the array from which to retrieve the data.
+
 `searchQuery` (object): The search query object containing the properties to match.
+
 `callback` (function): The callback function that receives the found data.
 
 
-`getArray(filePath, dataArrayName, callback)`
+
+```js
+getArray(filePath, dataArrayName, callback)
+```
 This function retrieves the entire array of data from the specified JSON file. It takes the following parameters:
 
 `filePath` (string): The path to the JSON file.
+
 `dataArrayName` (string): The name of the array to retrieve from the JSON file.
+
 `callback` (function): The callback function that receives the retrieved array.
 
 
-`edit(filePath, dataArrayName, objectID, editObject)`
+
+```js
+edit(filePath, dataArrayName, objectID, editObject)
+```
 This function edits an existing dataset in the specified JSON file. It takes the following parameters:
 
 `filePath` (string): The path to the JSON file.
+
 `dataArrayName` (string): The name of the array in which the dataset is located.
+
 `objectID` (number): The ID of the dataset to be edited.
+
 `editObject` (object): The object containing the properties and values to be edited.
 
 
-`delSet(filePath, dataArrayName, objectID)`
+
+
+```js
+delSet(filePath, dataArrayName, objectID)
+```
 This function deletes an entire dataset from the specified JSON file based on its ID. It takes the following parameters:
 
 `filePath` (string): The path to the JSON file.
+
 `dataArrayName` (string): The name of the array from which to delete the dataset.
+
 `objectID` (number): The ID of the dataset to be deleted.
 
 
-`del(filePath, dataArrayName, objectID, deleteObject)`
+
+
+```js
+del(filePath, dataArrayName, objectID, deleteObject)
+```
 This function deletes specific properties from an existing dataset in the specified JSON file. It takes the following parameters:
 
 `filePath` (string): The path to the JSON file.
+
 `dataArrayName` (string): The name of the array in which the dataset is located.
+
 `objectID` (number): The ID of the dataset from which to delete the properties.
+
 `deleteObject` (object): The object containing the properties to be deleted from the dataset.
 
 
