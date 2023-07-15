@@ -13,7 +13,7 @@ DoodleDB is a lightweight package that allows you to utilize JSON files as datab
 To install DoodleDB, run the following command:
 
 ```bash
-npm install npm-database-package
+npm install doodledb
 ```
 
 ## Usage
@@ -27,7 +27,7 @@ import db from "doodledb";
 
 Example:
 ```js
-import database from 'npm-database-package';
+import database from 'doodledb';
 
 // Example usage of functions
 

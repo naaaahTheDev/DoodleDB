@@ -1,6 +1,6 @@
 {
   "name": "doodledb",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "DoodleDB is a lightweight package that allows you to utilize JSON files as databases",
   "main": "src/index.js",
   "type": "module",
