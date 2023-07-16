@@ -9,16 +9,26 @@ export default {
   push(filePath: string, dataArrayName: string, data: { id?: number, [key: string]: any}): void {
     fs.readFile(filePath, 'utf8', (err, fileData) => {
       if (err) {
-        try {
-          fs.writeFile(filePath, 'utf8', () => {
-            console.log(chalk.green('Database file not found. Successfully created.'));
-          });
-        } catch (err) {
-          console.error(chalk.red('Error reading JSON file ' + err));
-          return;
-        }
-      }
+        if (err.code === 'ENOENT') {
+            //File does not exist, create the file
+            const initialData = {
+                [dataArrayName]: []
+            };
+            const initialJsonData = JSON.stringify(initialData, null, 2);
 
+            fs.writeFile(filePath, initialJsonData, (writeError) => {
+                if (writeError) {
+                    console.error(chalk.red('Error creating JSON file:', writeError));
+                    return;
+                }
+                console.log(chalk.green('Database file created successfully.'));
+                //Call the push function recursively now that the file is created
+                this.push(filePath, dataArrayName, data);
+            });
+        } else {
+            console.error(chalk.red('Error reading JSON file', err));
+        }
+      } else {
       let dataObject: DataObject = {};
 
       try {
@@ -49,6 +59,7 @@ export default {
         }
         console.log(chalk.green('New data has been added to the JSON file successfully!'));
       });
+    }
     });
   },
 
