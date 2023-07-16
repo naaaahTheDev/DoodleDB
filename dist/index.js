@@ -1,13 +1,13 @@
 import chalk from "chalk";
 import fs from "fs";
 export default {
-    push(filePath, dataArrayName, data) {
+    push(filePath, dataCollectionName, data) {
         fs.readFile(filePath, 'utf8', (err, fileData) => {
             if (err) {
                 if (err.code === 'ENOENT') {
                     //File does not exist, create the file
                     const initialData = {
-                        [dataArrayName]: []
+                        [dataCollectionName]: []
                     };
                     const initialJsonData = JSON.stringify(initialData, null, 2);
                     fs.writeFile(filePath, initialJsonData, (writeError) => {
@@ -17,7 +17,7 @@ export default {
                         }
                         console.log(chalk.green('Database file created successfully.'));
                         //Call the push function recursively now that the file is created
-                        this.push(filePath, dataArrayName, data);
+                        this.push(filePath, dataCollectionName, data);
                     });
                 }
                 else {
@@ -35,12 +35,12 @@ export default {
                     console.error(chalk.red('Error parsing JSON file:', parseError));
                     return;
                 }
-                if (!dataObject[dataArrayName]) {
-                    dataObject[dataArrayName] = [];
+                if (!dataObject[dataCollectionName]) {
+                    dataObject[dataCollectionName] = [];
                 }
-                const dataArray = dataObject[dataArrayName];
-                const id = data.id || dataArray.length + 1;
-                dataArray.push({ id, ...data });
+                const dataCollection = dataObject[dataCollectionName];
+                const id = data.id || dataCollection.length + 1;
+                dataCollection.push({ id, ...data });
                 const updatedJsonData = JSON.stringify(dataObject, null, 2);
                 fs.writeFile(filePath, updatedJsonData, (writeError) => {
                     if (writeError) {
@@ -52,7 +52,7 @@ export default {
             }
         });
     },
-    get(filePath, dataArrayName, searchQuery, callback) {
+    get(filePath, dataCollectionName, searchQuery, callback) {
         fs.readFile(filePath, 'utf8', (err, jsonData) => {
             if (err) {
                 console.error(chalk.red(err));
@@ -65,12 +65,12 @@ export default {
             catch (err) {
                 console.error(chalk.red('Error while parsing data ' + err));
             }
-            const dataArray = dataObject[dataArrayName];
-            if (!dataArray) {
-                console.log(chalk.yellow('No data found in the specified dataArray.'));
+            const dataCollection = dataObject[dataCollectionName];
+            if (!dataCollection) {
+                console.log(chalk.yellow('No data found in the specified dataCollection.'));
                 return;
             }
-            const foundData = dataArray.filter((data) => {
+            const foundData = dataCollection.filter((data) => {
                 for (const key in searchQuery) {
                     const queryValue = searchQuery[key].toString().toLowerCase();
                     const dataValue = data[key].toString().toLowerCase();
@@ -86,7 +86,7 @@ export default {
             callback(foundData);
         });
     },
-    getArray(filePath, dataArrayName, callback) {
+    getCollection(filePath, dataCollectionName, callback) {
         fs.readFile(filePath, 'utf8', (err, jsonData) => {
             if (err) {
                 console.error(chalk.red(err));
@@ -98,17 +98,17 @@ export default {
             catch (err) {
                 console.error(chalk.red('Error while parsing data ' + err));
             }
-            const dataArray = dataObject[dataArrayName];
-            if (!dataArray) {
-                console.log(chalk.red('Data array not found'));
+            const dataCollection = dataObject[dataCollectionName];
+            if (!dataCollection) {
+                console.log(chalk.red('Collection not found'));
                 return;
             }
             else {
-                callback(dataArray);
+                callback(dataCollection);
             }
         });
     },
-    edit(filePath, dataArrayName, objectID, editObject) {
+    edit(filePath, dataCollectionName, objectID, editObject) {
         fs.readFile(filePath, 'utf8', (err, jsonData) => {
             if (err) {
                 console.error(chalk.red('Error reading JSON file: ', err));
@@ -116,8 +116,8 @@ export default {
             }
             try {
                 const dataObject = JSON.parse(jsonData);
-                const dataArray = dataObject[dataArrayName];
-                const dataToEdit = dataArray.find((data) => data.id === objectID);
+                const dataCollection = dataObject[dataCollectionName];
+                const dataToEdit = dataCollection.find((data) => data.id === objectID);
                 if (dataToEdit) {
                     for (const key in editObject) {
                         dataToEdit[key] = editObject[key];
@@ -141,7 +141,7 @@ export default {
             }
         });
     },
-    delSet(filePath, dataArrayName, objectID) {
+    delCollection(filePath, dataCollectionName, objectID) {
         fs.readFile(filePath, 'utf8', (err, jsonData) => {
             if (err) {
                 console.error(chalk.red('Error while reading JSON file ' + err));
@@ -149,8 +149,8 @@ export default {
             }
             try {
                 const dataObject = JSON.parse(jsonData);
-                const dataArray = dataObject[dataArrayName];
-                const setToDel = dataArray.find((data) => data.id === objectID);
+                const dataCollection = dataObject[dataCollectionName];
+                const setToDel = dataCollection.find((data) => data.id === objectID);
                 if (setToDel) {
                     const propertiesToDelete = Object.keys(setToDel);
                     for (const property of propertiesToDelete) {
@@ -161,8 +161,8 @@ export default {
                     console.log(`Dataset with ID ${objectID} not found.`);
                     return;
                 }
-                const filteredArray = dataArray.filter((data) => Object.keys(data).length > 0);
-                dataObject[dataArrayName] = filteredArray;
+                const filteredArray = dataCollection.filter((data) => Object.keys(data).length > 0);
+                dataObject[dataCollectionName] = filteredArray;
                 const updatedJsonData = JSON.stringify(dataObject, null, 2);
                 fs.writeFile(filePath, updatedJsonData, (writeError) => {
                     if (writeError) {
@@ -178,7 +178,7 @@ export default {
             }
         });
     },
-    del(filePath, dataArrayName, objectID, deleteObject) {
+    del(filePath, dataCollectionName, objectID, deleteObject) {
         fs.readFile(filePath, 'utf8', (err, jsonData) => {
             if (err) {
                 console.error(chalk.red('Error while reading JSON file ' + err));
@@ -186,8 +186,8 @@ export default {
             }
             try {
                 const dataObject = JSON.parse(jsonData);
-                const dataArray = dataObject[dataArrayName];
-                const dataToDel = dataArray.find((data) => data.id === objectID);
+                const dataCollection = dataObject[dataCollectionName];
+                const dataToDel = dataCollection.find((data) => data.id === objectID);
                 if (dataToDel) {
                     for (const key in deleteObject) {
                         delete dataToDel[key];

@@ -6,13 +6,13 @@ interface DataObject {
 }
 
 export default {
-  push(filePath: string, dataArrayName: string, data: { id?: number, [key: string]: any}): void {
+  push(filePath: string, dataCollectionName: string, data: { id?: number, [key: string]: any}): void {
     fs.readFile(filePath, 'utf8', (err, fileData) => {
       if (err) {
         if (err.code === 'ENOENT') {
             //File does not exist, create the file
             const initialData = {
-                [dataArrayName]: []
+                [dataCollectionName]: []
             };
             const initialJsonData = JSON.stringify(initialData, null, 2);
 
@@ -23,7 +23,7 @@ export default {
                 }
                 console.log(chalk.green('Database file created successfully.'));
                 //Call the push function recursively now that the file is created
-                this.push(filePath, dataArrayName, data);
+                this.push(filePath, dataCollectionName, data);
             });
         } else {
             console.error(chalk.red('Error reading JSON file', err));
@@ -40,15 +40,15 @@ export default {
         return;
       }
 
-      if (!dataObject[dataArrayName]) {
-        dataObject[dataArrayName] = [];
+      if (!dataObject[dataCollectionName]) {
+        dataObject[dataCollectionName] = [];
       }
 
-      const dataArray = dataObject[dataArrayName];
+      const dataCollection = dataObject[dataCollectionName];
 
-      const id = data.id || dataArray.length + 1;
+      const id = data.id || dataCollection.length + 1;
 
-      dataArray.push({ id, ...data });
+      dataCollection.push({ id, ...data });
 
       const updatedJsonData = JSON.stringify(dataObject, null, 2);
 
@@ -63,7 +63,7 @@ export default {
     });
   },
 
-  get(filePath: string, dataArrayName: string, searchQuery: { [key: string]: string | number }, callback: (foundData: any[]) => void): void {
+  get(filePath: string, dataCollectionName: string, searchQuery: { [key: string]: string | number }, callback: (foundData: any[]) => void): void {
     fs.readFile(filePath, 'utf8', (err, jsonData) => {
       if (err) {
         console.error(chalk.red(err));
@@ -77,13 +77,13 @@ export default {
         console.error(chalk.red('Error while parsing data ' + err));
       }
 
-      const dataArray = dataObject[dataArrayName];
-      if (!dataArray) {
-        console.log(chalk.yellow('No data found in the specified dataArray.'));
+      const dataCollection = dataObject[dataCollectionName];
+      if (!dataCollection) {
+        console.log(chalk.yellow('No data found in the specified dataCollection.'));
         return;
       }
 
-      const foundData = dataArray.filter((data: DataObject) => {
+      const foundData = dataCollection.filter((data: DataObject) => {
         for (const key in searchQuery) {
           const queryValue = searchQuery[key].toString().toLowerCase();
           const dataValue = data[key].toString().toLowerCase();
@@ -99,7 +99,7 @@ export default {
     });
   },
 
-  getArray(filePath: string, dataArrayName: string, callback: (dataArray: any[]) => void): void {
+  getCollection(filePath: string, dataCollectionName: string, callback: (dataCollection: any[]) => void): void {
     fs.readFile(filePath, 'utf8', (err, jsonData) => {
       if (err) {
         console.error(chalk.red(err));
@@ -113,17 +113,17 @@ export default {
         console.error(chalk.red('Error while parsing data ' + err));
       }
 
-      const dataArray = dataObject[dataArrayName];
-      if (!dataArray) {
-        console.log(chalk.red('Data array not found'));
+      const dataCollection = dataObject[dataCollectionName];
+      if (!dataCollection) {
+        console.log(chalk.red('Collection not found'));
         return;
       } else {
-        callback(dataArray);
+        callback(dataCollection);
       }
     });
   },
 
-  edit(filePath: string, dataArrayName: string, objectID: number, editObject: {[key: string]: string | number}): void {
+  edit(filePath: string, dataCollectionName: string, objectID: number, editObject: {[key: string]: string | number}): void {
     fs.readFile(filePath, 'utf8', (err, jsonData) => {
       if (err) {
         console.error(chalk.red('Error reading JSON file: ', err));
@@ -133,9 +133,9 @@ export default {
       try {
         const dataObject: DataObject = JSON.parse(jsonData);
 
-        const dataArray = dataObject[dataArrayName];
+        const dataCollection = dataObject[dataCollectionName];
 
-        const dataToEdit = dataArray.find((data: DataObject) => data.id === objectID);
+        const dataToEdit = dataCollection.find((data: DataObject) => data.id === objectID);
 
         if (dataToEdit) {
           for (const key in editObject) {
@@ -161,7 +161,7 @@ export default {
     });
   },
 
-  delSet(filePath: string, dataArrayName: string, objectID: number): void {
+  delCollection(filePath: string, dataCollectionName: string, objectID: number): void {
     fs.readFile(filePath, 'utf8', (err, jsonData) => {
       if (err) {
         console.error(chalk.red('Error while reading JSON file ' + err));
@@ -170,9 +170,9 @@ export default {
 
       try {
         const dataObject: DataObject = JSON.parse(jsonData);
-        const dataArray = dataObject[dataArrayName];
+        const dataCollection = dataObject[dataCollectionName];
 
-        const setToDel = dataArray.find((data: DataObject) => data.id === objectID);
+        const setToDel = dataCollection.find((data: DataObject) => data.id === objectID);
 
         if (setToDel) {
           const propertiesToDelete = Object.keys(setToDel);
@@ -185,9 +185,9 @@ export default {
           return;
         }
 
-        const filteredArray = dataArray.filter((data: DataObject) => Object.keys(data).length > 0);
+        const filteredArray = dataCollection.filter((data: DataObject) => Object.keys(data).length > 0);
 
-        dataObject[dataArrayName] = filteredArray;
+        dataObject[dataCollectionName] = filteredArray;
 
         const updatedJsonData = JSON.stringify(dataObject, null, 2);
 
@@ -204,7 +204,7 @@ export default {
       }
     });
   },
-  del(filePath: string, dataArrayName: string, objectID: number, deleteObject: object): void {
+  del(filePath: string, dataCollectionName: string, objectID: number, deleteObject: object): void {
     fs.readFile(filePath, 'utf8', (err, jsonData) => {
       if (err) {
         console.error(chalk.red('Error while reading JSON file ' + err));
@@ -213,9 +213,9 @@ export default {
 
       try {
         const dataObject: DataObject = JSON.parse(jsonData);
-        const dataArray = dataObject[dataArrayName];
+        const dataCollection = dataObject[dataCollectionName];
 
-        const dataToDel = dataArray.find((data: DataObject) => data.id === objectID);
+        const dataToDel = dataCollection.find((data: DataObject) => data.id === objectID);
 
         if (dataToDel) {
           for (const key in deleteObject) {

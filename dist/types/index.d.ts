@@ -1,16 +1,16 @@
 declare const _default: {
-    push(filePath: string, dataArrayName: string, data: {
+    push(filePath: string, dataCollectionName: string, data: {
         [key: string]: any;
         id?: number | undefined;
     }): void;
-    get(filePath: string, dataArrayName: string, searchQuery: {
+    get(filePath: string, dataCollectionName: string, searchQuery: {
         [key: string]: string | number;
     }, callback: (foundData: any[]) => void): void;
-    getArray(filePath: string, dataArrayName: string, callback: (dataArray: any[]) => void): void;
-    edit(filePath: string, dataArrayName: string, objectID: number, editObject: {
+    getCollection(filePath: string, dataCollectionName: string, callback: (dataCollection: any[]) => void): void;
+    edit(filePath: string, dataCollectionName: string, objectID: number, editObject: {
         [key: string]: string | number;
     }): void;
-    delSet(filePath: string, dataArrayName: string, objectID: number): void;
-    del(filePath: string, dataArrayName: string, objectID: number, deleteObject: object): void;
+    delCollection(filePath: string, dataCollectionName: string, objectID: number): void;
+    del(filePath: string, dataCollectionName: string, objectID: number, deleteObject: object): void;
 };
 export default _default;

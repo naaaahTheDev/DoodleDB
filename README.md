@@ -33,18 +33,18 @@ import database from 'doodledb';
 
 // Adding data to the database
 const filePath = 'data.json';
-const dataArrayName = 'items';
+const dataCollectionName = 'items';
 const newData = {
   name: 'John',
   age: 25
 };
-database.push(filePath, dataArrayName, newData);
+database.push(filePath, dataCollectionName, newData);
 
 // Retrieving data from the database
 const searchQuery = {
   name: 'John'
 };
-database.get(filePath, dataArrayName, searchQuery, (foundData) => {
+database.get(filePath, dataCollectionName, searchQuery, (foundData) => {
   console.log(foundData);
 });
 
@@ -53,15 +53,15 @@ const objectID = 1;
 const editObject = {
   age: 30
 };
-database.edit(filePath, dataArrayName, objectID, editObject);
+database.edit(filePath, dataCollectionName, objectID, editObject);
 
 // Deleting a dataset from the database
-database.delSet(filePath, dataArrayName, objectID);
+database.delCollection(filePath, dataCollectionName, objectID);
 ```
 
 ## Functions
 ```js
-push(filePath, dataArrayName, data)
+push(filePath, dataCollectionName, data)
 ```
 This function adds new data to the specified JSON file. It takes the following parameters:
 
@@ -70,7 +70,7 @@ This function adds new data to the specified JSON file. It takes the following p
 `filePath` (string): The path to the JSON file.
 
 
-`dataArrayName` (string): The name of the array in which the data should be stored.
+`dataCollectionName` (string): The name of the collection in which the data should be stored.
 
 
 `data` (object): The data to be added to the JSON file.
@@ -79,7 +79,7 @@ This function adds new data to the specified JSON file. It takes the following p
 
 
 ```js
-get(filePath, dataArrayName, searchQuery, callback)
+get(filePath, dataCollectionName, searchQuery, callback)
 ```
 This function retrieves data from the specified JSON file based on a search query. It takes the following parameters:
 
@@ -88,7 +88,7 @@ This function retrieves data from the specified JSON file based on a search quer
 `filePath` (string): The path to the JSON file.
 
 
-`dataArrayName` (string): The name of the array from which to retrieve the data.
+`dataCollectionName` (string): The name of the collection from which to retrieve the data.
 
 
 `searchQuery` (object): The search query object containing the properties to match.
@@ -100,11 +100,11 @@ This function retrieves data from the specified JSON file based on a search quer
 
 
 ```js
-getArray(filePath, dataArrayName, callback)
+getCollection(filePath, dataCollectionName, callback)
 ```
 
 
-This function retrieves the entire array of data from the specified JSON file. It takes the following parameters:
+This function retrieves the entire collection of data from the specified JSON file. It takes the following parameters:
 
 
 
@@ -112,7 +112,7 @@ This function retrieves the entire array of data from the specified JSON file. I
 
 
 
-`dataArrayName` (string): The name of the array to retrieve from the JSON file.
+`dataCollectionName` (string): The name of the collection to retrieve from the JSON file.
 
 
 
@@ -123,7 +123,7 @@ This function retrieves the entire array of data from the specified JSON file. I
 
 
 ```js
-edit(filePath, dataArrayName, objectID, editObject)
+edit(filePath, dataCollectionName, objectID, editObject)
 ```
 This function edits an existing dataset in the specified JSON file. It takes the following parameters:
 
@@ -133,7 +133,7 @@ This function edits an existing dataset in the specified JSON file. It takes the
 
 
 
-`dataArrayName` (string): The name of the array in which the dataset is located.
+`dataCollectionName` (string): The name of the collection in which the dataset is located.
 
 
 
@@ -149,17 +149,17 @@ This function edits an existing dataset in the specified JSON file. It takes the
 
 
 ```js
-delSet(filePath, dataArrayName, objectID)
+delCollection(filePath, dataCollectionName, objectID)
 ```
 
 
-This function deletes an entire dataset from the specified JSON file based on its ID. It takes the following parameters:
+This function deletes an entire collection from the specified JSON file based on its ID. It takes the following parameters:
 
 `filePath` (string): The path to the JSON file.
 
 
 
-`dataArrayName` (string): The name of the array from which to delete the dataset.
+`dataCollectionName` (string): The name of the collection from which to delete the dataset.
 
 
 
@@ -171,7 +171,7 @@ This function deletes an entire dataset from the specified JSON file based on it
 
 
 ```js
-del(filePath, dataArrayName, objectID, deleteObject)
+del(filePath, dataCollectionName, objectID, deleteObject)
 ```
 
 
@@ -183,7 +183,7 @@ This function deletes specific properties from an existing dataset in the specif
 
 
 
-`dataArrayName` (string): The name of the array in which the dataset is located.
+`dataCollectionName` (string): The name of the collection in which the dataset is located.
 
 
 
@@ -196,7 +196,7 @@ This function deletes specific properties from an existing dataset in the specif
 
 ## Q&A
 **What are IDs?**
-- Each dataset within an array has an ID value. This value increases depending on its order in the array. If it is at position one, the ID will be 1.
+- Each object within a collection has an ID value. This value increases depending on its order in the array. If it is at position one, the ID will be 1.
 
 ## License
 This project is under the MIT license. Read more about this license at **[LICENSE](https://opensource.org/license/mit/)**.
