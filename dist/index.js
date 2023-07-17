@@ -72,13 +72,24 @@ export default {
             }
             const foundData = dataCollection.filter((data) => {
                 for (const key in searchQuery) {
-                    const queryValue = searchQuery[key].toString().toLowerCase();
-                    const dataValue = data[key].toString().toLowerCase();
-                    if (Number(dataValue) === searchQuery[key]) {
-                        return true;
+                    const indexObject = dataObject[`${dataCollectionName}_${key}_index`];
+                    const fieldValue = data[key];
+                    if (indexObject && indexObject[key]) {
+                        const indexedArray = indexObject[key]; //Array of indexes
+                        const matchingIndexes = indexedArray.filter((index) => fieldValue === index);
+                        if (matchingIndexes.length > 0) {
+                            return true;
+                        }
                     }
-                    else if (dataValue && dataValue.includes(queryValue)) {
-                        return true;
+                    else {
+                        const queryValue = searchQuery[key].toString().toLowerCase();
+                        const dataValue = data[key].toString().toLowerCase();
+                        if (Number(dataValue) === searchQuery[key]) {
+                            return true;
+                        }
+                        else if (dataValue && dataValue.includes(queryValue)) {
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -117,15 +128,38 @@ export default {
             try {
                 const dataObject = JSON.parse(jsonData);
                 const dataCollection = dataObject[dataCollectionName];
+                if (!dataCollection) {
+                    console.log(chalk.red('no data found in the specified dataCollection.'));
+                    return;
+                }
                 const dataToEdit = dataCollection.find((data) => data.id === objectID);
-                if (dataToEdit) {
+                if (!dataToEdit) {
+                    console.log(chalk.red('No dataset found with the provided object ID.'));
+                    return;
+                }
+                let isIndexed = false;
+                for (const key in editObject) {
+                    if (editObject.hasOwnProperty(key)) {
+                        const fieldValue = editObject[key];
+                        //Update the data field
+                        dataToEdit[key] = fieldValue;
+                        //Check if index object exists
+                        const indexObject = dataObject[`${dataCollectionName}_${fieldValue}_index`];
+                        if (indexObject && indexObject[fieldValue]) {
+                            const indexedArray = indexObject[fieldValue];
+                            const matchingIndexes = indexedArray.filter((index) => index === fieldValue);
+                            if (matchingIndexes.length > 0) {
+                                indexedArray.push(objectID);
+                            }
+                            isIndexed = true;
+                        }
+                    }
+                }
+                if (!isIndexed) {
+                    //Fall back to regular search through the entire JSON file
                     for (const key in editObject) {
                         dataToEdit[key] = editObject[key];
                     }
-                }
-                else {
-                    console.log(chalk.red(`Dataset with ID ${objectID} not found.`));
-                    return;
                 }
                 const updatedJsonData = JSON.stringify(dataObject, null, 2);
                 fs.writeFile(filePath, updatedJsonData, (writeError) => {
@@ -208,6 +242,47 @@ export default {
             }
             catch (err) {
                 console.error(chalk.red('Error while finding data ' + err));
+            }
+        });
+    },
+    //Indexing
+    createIndex(filePath, dataCollectionName, fieldName) {
+        fs.readFile(filePath, 'utf8', (err, jsonData) => {
+            if (err) {
+                console.error(chalk.red('Error reading JSON data ' + err));
+                return;
+            }
+            try {
+                const dataObject = JSON.parse(jsonData);
+                const dataCollection = dataObject[dataCollectionName];
+                if (!dataObject[`${dataCollectionName}_${fieldName}_index`]) {
+                    dataObject[`${dataCollectionName}_${fieldName}_index`] = {};
+                }
+                const indexObject = dataObject[`${dataCollectionName}_${fieldName}_index`];
+                dataCollection.forEach((data) => {
+                    const fieldValue = data[fieldName];
+                    if (fieldValue !== undefined) {
+                        //Check if fieldValue is already a part of the indexed object.
+                        if (!indexObject[fieldValue]) {
+                            indexObject[fieldValue] = [];
+                        }
+                        if (indexObject[fieldValue].includes(data.id)) {
+                            return;
+                        }
+                        indexObject[fieldValue].push(data.id);
+                    }
+                });
+                const updatedJsonData = JSON.stringify(dataObject, null, 2);
+                fs.writeFile(filePath, updatedJsonData, (writeError) => {
+                    if (writeError) {
+                        console.error(chalk.red('Error while updating JSON file ' + err));
+                        return;
+                    }
+                    console.log(chalk.green(`Successfully indexed "${fieldName}", under collection: ${dataCollectionName}`));
+                });
+            }
+            catch (err) {
+                console.error(chalk.red('Error getting JSON data ' + err));
             }
         });
     }

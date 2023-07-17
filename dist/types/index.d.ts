@@ -12,5 +12,6 @@ declare const _default: {
     }): void;
     delCollection(filePath: string, dataCollectionName: string, objectID: number): void;
     del(filePath: string, dataCollectionName: string, objectID: number, deleteObject: object): void;
+    createIndex(filePath: string, dataCollectionName: string, fieldName: string): void;
 };
 export default _default;
