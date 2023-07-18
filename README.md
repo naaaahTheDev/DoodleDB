@@ -18,50 +18,86 @@ npm install doodledb
 
 ## Usage
 
-To use the package, you need to import the package and access its functions. Here's an example of how to import the package and use its functions:
+Use doodleDBs many functions and features.
 
-Import (ES6):
-```javascript
-import db from "doodledb";
-```
+1. Import the module into your Node.js application
 
-Example:
 ```js
-import database from 'doodledb';
-
-// Example usage of functions
-
-// Adding data to the database
-const filePath = 'data.json';
-const dataCollectionName = 'items';
-const newData = {
-  name: 'John',
-  age: 25
-};
-database.push(filePath, dataCollectionName, newData);
-
-// Retrieving data from the database
-const searchQuery = {
-  name: 'John'
-};
-database.get(filePath, dataCollectionName, searchQuery, (foundData) => {
-  console.log(foundData);
-});
-
-// Updating data in the database
-const objectID = 1;
-const editObject = {
-  age: 30
-};
-database.edit(filePath, dataCollectionName, objectID, editObject);
-
-// Deleting a dataset from the database
-database.delCollection(filePath, dataCollectionName, objectID);
+import database from "doodledb";
 ```
+
+
+2. Usage of functions
+  - **Push**: Add new data to the JSON file
+  ```js
+  database.push({ filePath, collectionName, data })
+    .then((successMessage) => {
+      console.log(successMessage);
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+  ```
+
+  - **Get**: Retrieve data from the JSON file based on search criteria.
+  ```js
+  database.get({ filePath, collectionName, searchQuery: data })
+  .then((foundData) => {
+    console.log(foundData);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+  ```
+
+  - **Get Collection**: Retrieve the entire collection from the JSON file
+  ```js
+  database.getCollection({ filePath, collectionName })
+  .then((dataCollection) => {
+    console.log(dataCollection);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+  ```
+
+  - **Delete Collection**: Delete an entire collection from the JSON file.
+  ```js
+  database.delCollection({ filePath, collectionName, objectID })
+  .then((successMessage) => {
+    console.log(successMessage);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+  ```
+
+  - **Delete**" Delete specific fields from a data entry in the JSON file
+  ```js
+  database.del({ filePath, collectionName, objectID, deleteObject })
+  .then((successMessage) => {
+    console.log(successMessage);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+  ```
+
+  - **Create Index**: Create an index for faster searching.
+  ```js
+  database.createIndex({ filePath, collectionName, fieldName })
+  .then((successMessage) => {
+    console.log(successMessage);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+  ```
+
 
 ## Functions
 ```js
-push(filePath, dataCollectionName, data)
+push(options: { filePath: string, collectionName: string, data: { id?: number, [key: string]: any } }): Promise<string>
 ```
 This function adds new data to the specified JSON file. It takes the following parameters:
 
@@ -70,16 +106,18 @@ This function adds new data to the specified JSON file. It takes the following p
 `filePath` (string): The path to the JSON file.
 
 
-`dataCollectionName` (string): The name of the collection in which the data should be stored.
+`collectionName` (string): The name of the collection in which the data should be stored.
 
 
 `data` (object): The data to be added to the JSON file.
+
+Returns a promise that resolves to a success message on successful data addition.
 
 
 
 
 ```js
-get(filePath, dataCollectionName, searchQuery, callback)
+get(options: { filePath: string, collectionName: string, searchQuery: { [key: string]: string | number } }): Promise<any[]>
 ```
 This function retrieves data from the specified JSON file based on a search query. It takes the following parameters:
 
@@ -88,19 +126,19 @@ This function retrieves data from the specified JSON file based on a search quer
 `filePath` (string): The path to the JSON file.
 
 
-`dataCollectionName` (string): The name of the collection from which to retrieve the data.
+`collectionName` (string): The name of the collection from which to retrieve the data.
 
 
 `searchQuery` (object): The search query object containing the properties to match.
 
 
-`callback` (function): The callback function that receives the found data.
+Returns a promise that resolves to an array of matching data objects.
 
 
 
 
 ```js
-getCollection(filePath, dataCollectionName, callback)
+getCollection(options: { filePath: string, collectionName: string }): Promise<any[]>
 ```
 
 
@@ -112,18 +150,19 @@ This function retrieves the entire collection of data from the specified JSON fi
 
 
 
-`dataCollectionName` (string): The name of the collection to retrieve from the JSON file.
+`collectionName` (string): The name of the collection to retrieve from the JSON file.
 
 
+Returns a promise that resolves to an array of all data objects in the collection.
 
-`callback` (function): The callback function that receives the retrieved array.
+
 
 
 
 
 
 ```js
-edit(filePath, dataCollectionName, objectID, editObject)
+edit(options: { filePath: string, collectionName: string, objectID: number, editObject: { [key: string]: string | number } }): Promise<string>
 ```
 This function edits an existing dataset in the specified JSON file. It takes the following parameters:
 
@@ -133,7 +172,7 @@ This function edits an existing dataset in the specified JSON file. It takes the
 
 
 
-`dataCollectionName` (string): The name of the collection in which the dataset is located.
+`collectionName` (string): The name of the collection in which the dataset is located.
 
 
 
@@ -144,12 +183,12 @@ This function edits an existing dataset in the specified JSON file. It takes the
 `editObject` (object): The object containing the properties and values to be edited.
 
 
-
+Returns a promise that resolves to a success message on successful data editing.
 
 
 
 ```js
-delCollection(filePath, dataCollectionName, objectID)
+delCollection(options: { filePath: string, collectionName: string, objectID: number }): Promise<string>
 ```
 
 
@@ -159,19 +198,19 @@ This function deletes an entire collection from the specified JSON file based on
 
 
 
-`dataCollectionName` (string): The name of the collection from which to delete the dataset.
+`collectionName` (string): The name of the collection from which to delete the dataset.
 
 
 
 `objectID` (number): The ID of the dataset to be deleted.
 
 
-
+Returns a promise that resolves to a success message on successful collection deletion.
 
 
 
 ```js
-del(filePath, dataCollectionName, objectID, deleteObject)
+del(options: { filePath: string, collectionName: string, objectID: number, deleteObject: object }): Promise<string>
 ```
 
 
@@ -183,7 +222,7 @@ This function deletes specific properties from an existing dataset in the specif
 
 
 
-`dataCollectionName` (string): The name of the collection in which the dataset is located.
+`collectionName` (string): The name of the collection in which the dataset is located.
 
 
 
@@ -194,9 +233,36 @@ This function deletes specific properties from an existing dataset in the specif
 `deleteObject` (object): The object containing the properties to be deleted from the dataset.
 
 
+Returns a promise that resolves to a success message on successful field deletion.
+
+
+
+```js
+createIndex(options: { filePath: string, collectionName: string, fieldName: string }): Promise<string>
+```
+
+Creates an index for faster searching.
+
+`filePath` (string): Path to the JSON file.
+
+
+
+`collectionName` (string): The collection containing the property you want to index.
+
+
+
+`fieldName`: (string): The property you would like to index.
+
+
+Returns a promise that resolves to a success message on successful index creation.
+
+
 ## Q&A
 **What are IDs?**
 - Each object within a collection has an ID value. This value increases depending on its order in the array. If it is at position one, the ID will be 1.
+
+## Discord Server
+- Join the [Discord Server](https://discord.gg/XjQQRzUpmC) server for support - 
 
 ## License
 This project is under the MIT license. Read more about this license at **[LICENSE](https://opensource.org/license/mit/)**.

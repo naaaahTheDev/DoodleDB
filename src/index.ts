@@ -1,6 +1,5 @@
 import chalk from "chalk";
 import fs from "fs";
-import { getAllJSDocTagsOfKind } from "typescript";
 
 interface DataObject {
   [key: string]: any;
@@ -11,27 +10,35 @@ interface IndexObject {
 }
 
 export default {
-  push(filePath: string, dataCollectionName: string, data: { id?: number, [key: string]: any }): void {
+  push(options: {
+    filePath: string; 
+    collectionName: string; 
+    data: { id?: number, [key: string]: any };
+    }): Promise<string> {
+    return new Promise((resolve, reject) => {
+
+      
+    const { filePath, collectionName, data } = options;
     fs.readFile(filePath, 'utf8', (err, fileData) => {
       if (err) {
         if (err.code === 'ENOENT') {
           //File does not exist, create the file
           const initialData = {
-            [dataCollectionName]: []
+            [collectionName]: []
           };
           const initialJsonData = JSON.stringify(initialData, null, 2);
 
           fs.writeFile(filePath, initialJsonData, (writeError) => {
             if (writeError) {
-              console.error(chalk.red('Error creating JSON file:', writeError));
+              reject(writeError);
               return;
             }
-            console.log(chalk.green('Database file created successfully.'));
             //Call the push function recursively now that the file is created
-            this.push(filePath, dataCollectionName, data);
+            this.push({ filePath, collectionName, data });
           });
         } else {
-          console.error(chalk.red('Error reading JSON file', err));
+          reject(err);
+          return;
         }
       } else {
         let dataObject: DataObject = {};
@@ -41,15 +48,15 @@ export default {
             dataObject = JSON.parse(fileData);
           }
         } catch (parseError) {
-          console.error(chalk.red('Error parsing JSON file:', parseError));
+          reject(parseError)
           return;
         }
 
-        if (!dataObject[dataCollectionName]) {
-          dataObject[dataCollectionName] = [];
+        if (!dataObject[collectionName]) {
+          dataObject[collectionName] = [];
         }
 
-        const dataCollection = dataObject[dataCollectionName];
+        const dataCollection = dataObject[collectionName];
 
         const id = data.id || dataCollection.length + 1;
 
@@ -62,288 +69,336 @@ export default {
             console.error(chalk.red('Error writing JSON file:', writeError));
             return;
           }
-          console.log(chalk.green('New data has been added to the JSON file successfully!'));
+          const successMessage = 'New data has been added to the JSON file successfully!'
+          resolve(successMessage)
         });
       }
     });
+  }) 
   },
 
-  get(filePath: string, dataCollectionName: string, searchQuery: { [key: string]: string | number }, callback: (foundData: any[]) => void): void {
-    fs.readFile(filePath, 'utf8', (err, jsonData) => {
-      if (err) {
-        console.error(chalk.red(err));
-        return;
-      }
+  get(options: {
+    filePath: string;
+    collectionName: string;
+    searchQuery: { [key: string]: string | number};
+  }): Promise<any[]> {
+    const { filePath, collectionName, searchQuery } = options;
 
-      let dataObject: DataObject = {};
+    return new Promise((resolve, reject) => {
+      fs.readFile(filePath, 'utf8', (err, jsonData) => {
+        if (err) {
+          console.error(chalk.red(err));
+          reject(err);
+          return;
+        }
+  
+        let dataObject: DataObject = {};
+  
+        try {
+          dataObject = JSON.parse(jsonData);
+        } catch (err) {
+          reject(err)
+        }
+  
+        const dataCollection = dataObject[collectionName];
+  
+        if (!dataCollection) {
+          const errMessage = 'No data found in the specified dataCollection.'
+          reject([errMessage]);
+        }
+  
+        const foundData = dataCollection.filter((data: DataObject) => {
+          for (const key in searchQuery) {
+  
+            const indexObject: IndexObject = dataObject[`${collectionName}_${key}_index`];
+            const fieldValue = data[key];
+  
+            if (indexObject && indexObject[key]) {
+              const indexedArray = indexObject[key]; //Array of indexes
+              const matchingIndexes = indexedArray.filter((index) => fieldValue === index);
+  
+              if (matchingIndexes.length > 0) {
+                return true
+              }
+            } else {
+              const queryValue = searchQuery[key].toString().toLowerCase();
+              const dataValue = data[key].toString().toLowerCase();
+              if (Number(dataValue) === searchQuery[key]) {
+                return true;
+              } else if (dataValue && dataValue.includes(queryValue)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        });
+        resolve(foundData);
+      });
+    });
+  },
 
-      try {
-        dataObject = JSON.parse(jsonData);
-      } catch (err) {
-        console.error(chalk.red('Error while parsing data ' + err));
-      }
+  getCollection(options: {
+    filePath: string; 
+    collectionName: string;
+    }): Promise<any[]> {
+    const { filePath, collectionName } = options;
+    return new Promise((resolve, reject) => {
+      fs.readFile(filePath, 'utf8', (err, jsonData) => {
+        if (err) {
+          console.error(chalk.red(err));
+          reject(err);
+          return;
+        }
+  
+        let dataObject: DataObject = {};
+  
+        try {
+          dataObject = JSON.parse(jsonData);
+        } catch (err) {
+          reject(err);
+        }
+  
+        const dataCollection = dataObject[collectionName];
+        if (!dataCollection) {
+          reject("Collection not found.");
+          return;
+        } else {
+          resolve(dataCollection);
+        }
+      });
+    });
+  },
 
-      const dataCollection = dataObject[dataCollectionName];
+  edit(options: {
+    filePath: string; 
+    collectionName: string; 
+    objectID: number; 
+    editObject: { [key: string]: string | number };
+  }): Promise<string> {
+    const { filePath, collectionName, objectID, editObject} = options;
 
-      if (!dataCollection) {
-        console.log(chalk.yellow('No data found in the specified dataCollection.'));
-        return;
-      }
+    return new Promise((resolve, reject) => {
+      fs.readFile(filePath, 'utf8', (err, jsonData) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+  
+        try {
+          const dataObject: DataObject = JSON.parse(jsonData);
+  
+          const dataCollection = dataObject[collectionName];
+  
+          if (!dataCollection) {
+            reject('No data found in the specified dataCollection');
+            return;
+          }
+  
+          const dataToEdit = dataCollection.find((data: DataObject) => data.id === objectID);
+  
+          if (!dataToEdit) {
+            reject('No dataset found with the provided object ID.')
+            return;
+          }
+  
+          let isIndexed = false;
+  
+          for (const key in editObject) {
+            if (editObject.hasOwnProperty(key)) {
+              const fieldValue = editObject[key];
+  
+              //Update the data field
+              dataToEdit[key] = fieldValue;
+  
+              //Check if index object exists
+              const indexObject: IndexObject = dataObject[`${collectionName}_${fieldValue}_index`];
+              
+              if (indexObject && indexObject[fieldValue]) {
+                const indexedArray = indexObject[fieldValue];
+                const matchingIndexes = indexedArray.filter((index) => index === fieldValue);
+  
+                if (matchingIndexes.length > 0) {
+                  indexedArray.push(objectID);
+                } 
+  
+                isIndexed = true;
+  
+              }
+            }
+          }
+  
+          if (!isIndexed) {
+            //Fall back to regular search through the entire JSON file
+            for (const key in editObject) {
+              dataToEdit[key] = editObject[key]
+            }
+          }
+  
+          const updatedJsonData = JSON.stringify(dataObject, null, 2);
+  
+          fs.writeFile(filePath, updatedJsonData, (writeError) => {
+            if (writeError) {
+              reject(writeError);
+              return;
+            }
+            resolve('JSON file has been updated successfully!');
+          })
+        } catch (err) {
+        }
+      });
+    });
+  },
 
-      const foundData = dataCollection.filter((data: DataObject) => {
-        for (const key in searchQuery) {
-
-          const indexObject: IndexObject = dataObject[`${dataCollectionName}_${key}_index`];
-          const fieldValue = data[key];
-
-          if (indexObject && indexObject[key]) {
-            const indexedArray = indexObject[key]; //Array of indexes
-            const matchingIndexes = indexedArray.filter((index) => fieldValue === index);
-
-            if (matchingIndexes.length > 0) {
-              return true
+  delCollection(options: {
+    filePath: string; 
+    collectionName: string;
+    objectID: number
+    }): Promise<string> {
+    const { filePath, collectionName, objectID } = options;
+    return new Promise((resolve, reject) => {
+      fs.readFile(filePath, 'utf8', (err, jsonData) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+  
+        try {
+          const dataObject: DataObject = JSON.parse(jsonData);
+          const dataCollection = dataObject[collectionName];
+  
+          const setToDel = dataCollection.find((data: DataObject) => data.id === objectID);
+  
+          if (setToDel) {
+            const propertiesToDelete = Object.keys(setToDel);
+  
+            for (const property of propertiesToDelete) {
+              delete setToDel[property];
             }
           } else {
-            const queryValue = searchQuery[key].toString().toLowerCase();
-            const dataValue = data[key].toString().toLowerCase();
-            if (Number(dataValue) === searchQuery[key]) {
-              return true;
-            } else if (dataValue && dataValue.includes(queryValue)) {
-              return true;
-            }
+            reject(`Dataset with ID ${objectID} not found.`);
+            return;
           }
+  
+          const filteredArray = dataCollection.filter((data: DataObject) => Object.keys(data).length > 0);
+  
+          dataObject[collectionName] = filteredArray;
+  
+          const updatedJsonData = JSON.stringify(dataObject, null, 2);
+  
+          fs.writeFile(filePath, updatedJsonData, (writeError) => {
+            if (writeError) {
+              reject(writeError);
+              return;
+            }
+            resolve('JSON file has been updated successfully!')
+          });
+        } catch (err) {
+          reject(err);
+          return;
         }
-        return false;
       });
-      callback(foundData);
     });
   },
 
-  getCollection(filePath: string, dataCollectionName: string, callback: (dataCollection: any[]) => void): void {
-    fs.readFile(filePath, 'utf8', (err, jsonData) => {
-      if (err) {
-        console.error(chalk.red(err));
-      }
-
-      let dataObject: DataObject = {};
-
-      try {
-        dataObject = JSON.parse(jsonData);
-      } catch (err) {
-        console.error(chalk.red('Error while parsing data ' + err));
-      }
-
-      const dataCollection = dataObject[dataCollectionName];
-      if (!dataCollection) {
-        console.log(chalk.red('Collection not found'));
-        return;
-      } else {
-        callback(dataCollection);
-      }
-    });
-  },
-
-  edit(filePath: string, dataCollectionName: string, objectID: number, editObject: { [key: string]: string | number }): void {
-    fs.readFile(filePath, 'utf8', (err, jsonData) => {
-      if (err) {
-        console.error(chalk.red('Error reading JSON file: ', err));
-        return;
-      }
-
-      try {
-        const dataObject: DataObject = JSON.parse(jsonData);
-
-        const dataCollection = dataObject[dataCollectionName];
-
-        if (!dataCollection) {
-          console.log(chalk.red('no data found in the specified dataCollection.'));
+  del(options: {
+    filePath: string;
+    collectionName: string; 
+    objectID: number; 
+    deleteObject: object;
+    }): Promise<string> {
+    const { filePath, collectionName, objectID, deleteObject } = options;
+    return new Promise((resolve, reject) => {
+      fs.readFile(filePath, 'utf8', (err, jsonData) => {
+        if (err) {
+          reject(err);
           return;
         }
-
-        const dataToEdit = dataCollection.find((data: DataObject) => data.id === objectID);
-
-        if (!dataToEdit) {
-          console.log(chalk.red('No dataset found with the provided object ID.'));
-          return;
-        }
-
-        let isIndexed = false;
-
-        for (const key in editObject) {
-          if (editObject.hasOwnProperty(key)) {
-            const fieldValue = editObject[key];
-
-            //Update the data field
-            dataToEdit[key] = fieldValue;
-
-            //Check if index object exists
-            const indexObject: IndexObject = dataObject[`${dataCollectionName}_${fieldValue}_index`];
-            
-            if (indexObject && indexObject[fieldValue]) {
-              const indexedArray = indexObject[fieldValue];
-              const matchingIndexes = indexedArray.filter((index) => index === fieldValue);
-
-              if (matchingIndexes.length > 0) {
-                indexedArray.push(objectID);
-              } 
-
-              isIndexed = true;
-
+  
+        try {
+          const dataObject: DataObject = JSON.parse(jsonData);
+          const dataCollection = dataObject[collectionName];
+  
+          const dataToDel = dataCollection.find((data: DataObject) => data.id === objectID);
+  
+          if (dataToDel) {
+            for (const key in deleteObject) {
+              delete dataToDel[key];
             }
-          }
-        }
-
-        if (!isIndexed) {
-          //Fall back to regular search through the entire JSON file
-          for (const key in editObject) {
-            dataToEdit[key] = editObject[key]
-          }
-        }
-
-        const updatedJsonData = JSON.stringify(dataObject, null, 2);
-
-        fs.writeFile(filePath, updatedJsonData, (writeError) => {
-          if (writeError) {
-            console.error(chalk.red('Error while writing JSON file ' + writeError));
+          } else {
+            reject(`Dataset with ID ${objectID} not found.`);
             return;
           }
-          console.log(chalk.green('JSON file has been updated successfully!'));
-        })
-      } catch (err) {
-        console.error(chalk.red('Error while finding data ' + err));
-      }
-    });
-  },
-
-  delCollection(filePath: string, dataCollectionName: string, objectID: number): void {
-    fs.readFile(filePath, 'utf8', (err, jsonData) => {
-      if (err) {
-        console.error(chalk.red('Error while reading JSON file ' + err));
-        return;
-      }
-
-      try {
-        const dataObject: DataObject = JSON.parse(jsonData);
-        const dataCollection = dataObject[dataCollectionName];
-
-        const setToDel = dataCollection.find((data: DataObject) => data.id === objectID);
-
-        if (setToDel) {
-          const propertiesToDelete = Object.keys(setToDel);
-
-          for (const property of propertiesToDelete) {
-            delete setToDel[property];
-          }
-        } else {
-          console.log(`Dataset with ID ${objectID} not found.`);
-          return;
+  
+          const updatedJsonData = JSON.stringify(dataObject, null, 2);
+  
+          fs.writeFile(filePath, updatedJsonData, (writeError) => {
+            if (writeError) {
+              reject(writeError);
+              return;
+            }
+            resolve('JSON file has been updated successfully!');
+          });
+        } catch (err) {
+          reject(err);
         }
-
-        const filteredArray = dataCollection.filter((data: DataObject) => Object.keys(data).length > 0);
-
-        dataObject[dataCollectionName] = filteredArray;
-
-        const updatedJsonData = JSON.stringify(dataObject, null, 2);
-
-        fs.writeFile(filePath, updatedJsonData, (writeError) => {
-          if (writeError) {
-            console.error(chalk.red('Error writing JSON file: ', writeError));
-            return;
-          }
-          console.log(chalk.green('JSON file has been updated successfully!'));
-        });
-      } catch (err) {
-        console.error(chalk.red('Error while finding data ' + err));
-        return;
-      }
-    });
-  },
-
-  del(filePath: string, dataCollectionName: string, objectID: number, deleteObject: object): void {
-    fs.readFile(filePath, 'utf8', (err, jsonData) => {
-      if (err) {
-        console.error(chalk.red('Error while reading JSON file ' + err));
-        return;
-      }
-
-      try {
-        const dataObject: DataObject = JSON.parse(jsonData);
-        const dataCollection = dataObject[dataCollectionName];
-
-        const dataToDel = dataCollection.find((data: DataObject) => data.id === objectID);
-
-        if (dataToDel) {
-          for (const key in deleteObject) {
-            delete dataToDel[key];
-          }
-        } else {
-          console.log(`Dataset with ID ${objectID} not found.`);
-          return;
-        }
-
-        const updatedJsonData = JSON.stringify(dataObject, null, 2);
-
-        fs.writeFile(filePath, updatedJsonData, (writeError) => {
-          if (writeError) {
-            console.error(chalk.red('Error while writing JSON file ' + err));
-            return;
-          }
-          console.log(chalk.green('JSON file has been updated successfully!'));
-        });
-      } catch (err) {
-        console.error(chalk.red('Error while finding data ' + err));
-      }
+      });
     });
   },
 
   //Indexing
 
-  createIndex(filePath: string, dataCollectionName: string, fieldName: string): void {
-    fs.readFile(filePath, 'utf8', (err, jsonData) => {
-      if (err) {
-        console.error(chalk.red('Error reading JSON data ' + err));
-        return;
-      }
-
-      try {
-        const dataObject: DataObject = JSON.parse(jsonData);
-        const dataCollection = dataObject[dataCollectionName];
-
-        if (!dataObject[`${dataCollectionName}_${fieldName}_index`]) {
-          dataObject[`${dataCollectionName}_${fieldName}_index`] = {};
+  createIndex(options: {
+    filePath: string, 
+    collectionName: string, 
+    fieldName: string
+    }): Promise<string> {
+    const { filePath, collectionName, fieldName } = options;
+    return new Promise((resolve, reject) => {
+      fs.readFile(filePath, 'utf8', (err, jsonData) => {
+        if (err) {
+          reject(err);
+          return;
         }
-
-        const indexObject: IndexObject = dataObject[`${dataCollectionName}_${fieldName}_index`];
-
-        dataCollection.forEach((data: DataObject) => {
-          const fieldValue = data[fieldName];
-          if (fieldValue !== undefined) {
-            //Check if fieldValue is already a part of the indexed object.
-            if (!indexObject[fieldValue]) {
-              indexObject[fieldValue] = [];
+  
+        try {
+          const dataObject: DataObject = JSON.parse(jsonData);
+          const dataCollection = dataObject[collectionName];
+  
+          if (!dataObject[`${collectionName}_${fieldName}_index`]) {
+            dataObject[`${collectionName}_${fieldName}_index`] = {};
+          }
+  
+          const indexObject: IndexObject = dataObject[`${collectionName}_${fieldName}_index`];
+  
+          dataCollection.forEach((data: DataObject) => {
+            const fieldValue = data[fieldName];
+            if (fieldValue !== undefined) {
+              //Check if fieldValue is already a part of the indexed object.
+              if (!indexObject[fieldValue]) {
+                indexObject[fieldValue] = [];
+              }
+              if (indexObject[fieldValue].includes(data.id)) {
+                return;
+              }
+              indexObject[fieldValue].push(data.id);
             }
-            if (indexObject[fieldValue].includes(data.id)) {
+          });
+  
+          const updatedJsonData = JSON.stringify(dataObject, null, 2);
+  
+          fs.writeFile(filePath, updatedJsonData, (writeError) => {
+            if (writeError) {
+              reject(err);
               return;
             }
-            indexObject[fieldValue].push(data.id);
-          }
-        });
-
-        const updatedJsonData = JSON.stringify(dataObject, null, 2);
-
-        fs.writeFile(filePath, updatedJsonData, (writeError) => {
-          if (writeError) {
-            console.error(chalk.red('Error while updating JSON file ' + err));
-            return;
-          }
-
-          console.log(chalk.green(`Successfully indexed "${fieldName}", under collection: ${dataCollectionName}`));
-        });
-
-      } catch (err) {
-        console.error(chalk.red('Error getting JSON data ' + err));
-      }
-    })
-  }
-};
-
+            resolve(`Successfully indexed "${fieldName}", under collection: ${collectionName}`);
+          });
+  
+        } catch (err) {
+          reject(err)
+        }
+      })
+    }
+  
+    
+  )}}
