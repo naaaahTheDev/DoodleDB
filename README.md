@@ -117,4 +117,4 @@ Create an index for faster searching.
 - Join the [Discord Server](https://discord.gg/XjQQRzUpmC) server for support - 
 
 ## License
-This project is under the MIT license. Read more about this license at **[LICENSE](https://opensource.org/license/mit/)**.
+This project is under the MIT license. Read more about this license at **[LICENSE](https://opensource.org/license/mit/)**
