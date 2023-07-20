@@ -77,7 +77,7 @@ Deletes specific properties from an existing dataset in the JSON file.
 | :------ | :------ | :------ |
 | `options` | `Object` | - |
 | `options.collectionName` | `string` | - |
-| `options.objectID` | `number` | The ID of the object the property is on. |
+| `options.targetID` | `number` | The ID of the object the property is on. |
 | `options.targetKeys` | `string`[] | A list of keys that will be deleted from the object. |
 
 #### Returns
@@ -100,7 +100,7 @@ Delete an object from a collection in the JSON file.
 | :------ | :------ | :------ |
 | `options` | `Object` | - |
 | `options.collectionName` | `string` | - |
-| `options.objectID` | `number` | The ID of the object to delete. |
+| `options.targetID` | `number` | The ID of the object to delete. |
 
 #### Returns
 

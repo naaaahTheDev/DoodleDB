@@ -75,7 +75,7 @@ Retrieve an entire collection from the JSON file
 ### `deleteCollection`
 Delete an entire collection from the JSON file
   ```js
-  database.deleteCollection({ filePath, collectionName, objectID })
+  database.deleteCollection({ filePath, collectionName, targetID })
     .then((successMessage) => {
       console.log(successMessage);
     })
@@ -87,7 +87,7 @@ Delete an entire collection from the JSON file
 ### `delete` 
 Delete specific fields from a data entry in the JSON file
   ```js
-  database.delete({ filePath, collectionName, objectID, deleteObject })
+  database.delete({ filePath, collectionName, targetID, deleteObject })
     .then((successMessage) => {
       console.log(successMessage);
     })
