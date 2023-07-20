@@ -6,7 +6,7 @@ DoodleDB is a lightweight package that allows you to utilize JSON files as datab
 - [Usage](#usage)
 - [Functions](#functions)
 - [Q&A](#qa)
--[Discord Server](#discord-server)
+- [Discord Server](#discord-server)
 - [License](#license)
 
 ## Installation
