@@ -33,7 +33,7 @@ const database = new DoodleDB({ filePath: "database.json" });
 3. Use DoodleDB's many functions to manipulate the database!
 
 ## Functions
-For detailed documentation of every method on the DoodleDB class, see the [generated TypeDoc documentation](docs/classes/DoodleDB.md).
+For detailed documentation of every method on the DoodleDB class, visit our [GitHub Docs Page](https://github.com/naaaahTheDev/DoodleDB/blob/main/docs/classes/DoodleDB.md)
 
 ## Examples
 ### `push`
