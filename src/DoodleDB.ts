@@ -1,282 +1,311 @@
-import chalk from "chalk";
 import { readFile, writeFile } from "fs/promises";
 
-interface DataObject {
-	[key: string]: any;
+interface JsonData {
+    [key: string]: any;
 }
 
 interface IndexObject {
-	[key: string]: number[];
+    [key: string]: number[];
 }
 
 interface DataOperationResult {
-	ok: boolean;
-	json?: DataObject;
-	error?: any;
+    success: boolean;
+    jsonData?: JsonData;
+    error?: any;
 }
 
 export interface SearchQuery {
-	[key: string]: string | number;
+    [key: string]: string | number;
 }
 
 export class DoodleDB {
-	path: string;
+    path: string;
 
-	constructor(options: {
-		/** The path to the database. A file will be created here if it doesn't exist. */
-		filePath: string;
-	}) {
-		this.path = options.filePath;
-	}
-	/**
-	 * Pushes data to a collection in the JSON file.
-	 * @returns {Promise<string>} Error / success message
-	 */
-	async push(options: {
-		collectionName: string;
-		data: {
-			id?: number;
-			[key: string]: unknown;
-		};
-	}): Promise<string> {
-		const { collectionName, data } = options;
-		const fileData = await this.readDataObject();
-		// File does not exist, create the file
-		if (!fileData.ok && fileData.error?.code === "ENOENT") {
-			const initialData = {
-				[collectionName]: [],
-			};
-			const initialJsonData = JSON.stringify(initialData, null, 2);
+    constructor(options: {
+        /** 
+         * The path to the database.
+         * A file will be created to the directory if it does not exist already.
+        */
+        filePath: string;
+    }) {
+        this.path = options.filePath;
+    }
+    /**
+     * Pushes data to a collection in the JSON file.
+     * @returns {Promise<string>} Success / Error message
+     */
+    async push(options: {
+        collectionName: string;
+        data: { id?: number, [key: string]: unknown };
+    }): Promise<string> {
+        const { collectionName, data } = options;
+        const fileData = await this.readJSONData();
 
-			await writeFile(this.path, initialJsonData);
-		}
+        if(!fileData.success && fileData.error?.code === "ENOENT") {
+            const initialData = {
+                [collectionName]: [],
+            };
+            const initialJsonData = JSON.stringify(initialData, null, 2);
 
-		const dataObject: DataObject = fileData.json || {};
-		dataObject[collectionName] ??= [];
-		const dataCollection = dataObject[collectionName];
+            await writeFile(this.path, initialJsonData)
+        }
 
-		const id = data.id || dataCollection.length + 1;
+        const jsonData: JsonData = fileData.jsonData || {};
+        jsonData[collectionName] ??= [];
+        const dataCollection = jsonData[collectionName];
 
-		dataCollection.push({ id, ...data });
+        const id = data.id || dataCollection.length + 1;
 
-		const writeResult = await this.saveDataObject(dataObject);
-		if (!writeResult.ok) {
-			const errorMessage = `Error writing JSON file: ${writeResult.error}`;
-			console.error(chalk.red(errorMessage));
-			return errorMessage;
-		}
+        dataCollection.push({  id, ...data }); //Push the new collection under collections.
 
-		const successMessage =
-			"New data has been added to the JSON file successfully!";
-		return successMessage;
-	}
-	/**
-	 * Retrieves data from the JSON database based on a search query.
-	 * @returns An array of objects matching the search query.
-	 */
-	async get(options: {
-		collectionName: string;
-		searchQuery: SearchQuery;
-	}): Promise<any[] | string> {
-		const { collectionName, searchQuery } = options;
-		const readResult = await this.readDataObject();
+        const writeResult = await this.saveJSONData(jsonData);
+        if (!writeResult.success) {
+            const errorMessage = `Error writing JSON file: ${writeResult.error}`;
+            return errorMessage;
+        }
 
-		if (readResult.error) {
-			console.error(chalk.red(readResult.error));
-			return Promise.reject<string>(readResult.error);
-		}
+        const successMessage = "Data has been successfully added to the JSON file."
+        return successMessage;
+    }
 
-		const dataObject: DataObject = readResult.json || {};
-		const dataCollection = dataObject[collectionName];
+    /**
+     * 
+     * Retrieves data from the JSON database based on a search query.
+     * @returns An array of objects matching the search query.
+     */
+    async get(options: {
+        collectionName: string;
+        searchQuery: SearchQuery;
+    }): Promise<any[] | string> {
+        const { collectionName, searchQuery } = options;
+        const readResult = await this.readJSONData();
 
-		if (!dataCollection) {
-			const errMessage = "No data found in the specified dataCollection.";
-			return Promise.reject(errMessage);
-		}
+        if (readResult.error) {
+            return Promise.reject<string>(readResult.error);
+        }
 
-		const foundData = dataCollection.filter((data: DataObject) => {
-			for (const key in searchQuery) {
-				const indexObject: IndexObject =
-					dataObject[`${collectionName}_${key}_index`];
-				const fieldValue = data[key];
+        const jsonData: JsonData = readResult.jsonData || {};
+        const dataCollection = jsonData[collectionName];
 
-				if (indexObject?.[key]) {
-					const indexedArray = indexObject[key]; //Array of indexes
-					const matchingIndexes = indexedArray.filter(
-						(index) => fieldValue === index,
-					);
+        if (!dataCollection) {
+            const errMessage = "No data found in the specified dataCollection.";
+            return Promise.reject(errMessage);
+        }
 
-					if (matchingIndexes.length > 0) {
-						return true;
-					}
-				} else {
-					const queryValue = searchQuery[key].toString().toLowerCase();
-					const dataValue = data[key].toString().toLowerCase();
-					if (Number(dataValue) === searchQuery[key]) {
-						return true;
-					} else if (dataValue?.includes(queryValue)) {
-						return true;
-					}
-				}
-			}
-			return false;
-		});
+        const foundData = dataCollection.filter((data: JsonData) => {
+            for (const key in searchQuery) {
+                const indexObject: IndexObject = jsonData[`${collectionName}_${key}_index`];
+                const indexedArray = indexObject?.[key] || [];
+                const fieldValue = data[key];
 
-		return foundData;
-	}
+                if (indexedArray.length > 0) {
+                    const matchingIndexes = indexedArray.filter((index) => fieldValue === index);
 
-	/**
-	 * Retrieve an entire collection from the JSON file
-	 */
-	async getCollection(options: { collectionName: string }): Promise<any[]> {
-		const { collectionName } = options;
-		const readResult = await this.readDataObject();
+                    if (matchingIndexes.length > 0) {
+                        return true;
+                    }
+                } else {
+                    const queryValue = searchQuery[key].toString().toLowerCase();
+                    const dataValue = data[key].toString().toLowerCase();
+                    if (Number(dataValue) === searchQuery[key]) {
+                        return true;
+                    } else if (dataValue && dataValue.includes(queryValue)) {
+                        return true;
+                    }
+                }
+                return false
+            }
+        });
+        return foundData;
 
-		if (readResult.error) {
-			console.error(chalk.red(readResult.error));
-			return Promise.reject(readResult.error);
-		}
+    }
 
-		const dataObject: DataObject = readResult.json || {};
-		const dataCollection = dataObject[collectionName];
-		if (!dataCollection) return Promise.reject("Collection not found.");
+    /**
+     * Retrieves an entire collection from the JSON file.
+     * @returns The entire collection matching the collectionName.
+     */
+    async getCollection(options: {
+        collectionName: string;
+    }): Promise<any[] | string> {
+        const { collectionName } = options;
+        const readResult = await this.readJSONData();
 
-		return dataCollection;
-	}
+        if (readResult.error) {
+            return Promise.reject<string>(readResult.error);
+        }
 
-	/**
-	 * Edit an object from an existing collection in the JSON file.
-	 * @returns {Promise<string>} Error / success message
-	 */
-	async edit(options: {
-		collectionName: string;
-		/** The ID of the object to edit inside the collection. */
-		objectID: number;
-		/** Data to add to the object with ID `objectID` */
-		editObject: {
-			[key: string]: string | number;
-		};
-	}): Promise<string> {
-		const { collectionName, objectID, editObject } = options;
-		const readResult = await this.readDataObject();
-		if (readResult.error) return Promise.reject(readResult.error);
+        const jsonData: JsonData = readResult.jsonData || {};
+        const dataCollection = jsonData[collectionName];
 
-		const dataObject: DataObject = readResult.json || {};
-		const dataCollection = dataObject[collectionName];
-		if (!dataCollection)
-			return Promise.reject("No data found in the specified dataCollection");
+        if (!dataCollection) {
+            const errMessage = "No collection with the provided name was found."
+            return Promise.reject<string>(errMessage);
+        }
+        return dataCollection;
+    }
 
-		const dataToEdit = dataCollection.find(
-			(data: DataObject) => data.id === objectID,
-		);
-		if (!dataToEdit)
-			return Promise.reject("No dataset found with the provided object ID.");
+    /**
+     * Edit an object from an existing collection in the JSON file.
+     * @returns {Promise<string>} Success / Error message.
+     */
 
-		let isIndexed = false;
-		for (const key in editObject) {
-			const fieldValue = editObject[key];
-			//Update the data field
-			dataToEdit[key] = fieldValue;
+    async edit(options: { 
+        collectionName: string;
+        /** The ID of the object to edit inside the collection */
+        targetID: number;
+        /** Data to add or replace */
+        updatedData: { [key: string]: string | number };
+    }): Promise<string> {
+        const { collectionName, targetID, updatedData } = options;
+        const readResult = await this.readJSONData();
 
-			//Check if index object exists
-			const indexObject: IndexObject =
-				dataObject[`${collectionName}_${fieldValue}_index`];
-			if (!indexObject?.[fieldValue]) continue;
+        if (readResult.error) {
+            return Promise.reject(readResult.error)
+        }
 
-			const indexedArray = indexObject[fieldValue];
-			const matchingIndexes = indexedArray.filter(
-				(index) => index === fieldValue,
-			);
+        const jsonData: JsonData = readResult.jsonData || {};
+        const dataCollection = jsonData[collectionName];
 
-			if (matchingIndexes.length > 0) indexedArray.push(objectID);
+        if (!dataCollection) {
+            const errMessage = 'No collection with the provided name was found.'
+            return Promise.reject(errMessage);
+        }
 
-			isIndexed = true;
-		}
+        const dataToEdit = dataCollection.find((data: JsonData) => data.id === targetID);
 
-		if (!isIndexed) {
-			//Fall back to regular search through the entire JSON file
-			for (const key in editObject) {
-				dataToEdit[key] = editObject[key];
-			}
-		}
+        if (!dataToEdit) {
+            const errMessage = 'No dataset found with the provided target ID'
+            return Promise.reject(errMessage);
+        }
 
-		const writeResult = await this.saveDataObject(dataObject);
-		if (writeResult.error) return Promise.reject(writeResult.error);
-		return "JSON file has been updated successfully!";
-	}
+        let isIndexed = false;
 
-	/**
-	 * Delete an object from a collection in the JSON file.
-	 * @returns {Promise<string>} Error / success message
-	 */
-	async deleteObject(options: {
-		collectionName: string;
-		/** The ID of the object to delete. */
-		objectID: number;
-	}): Promise<string> {
-		const { collectionName, objectID } = options;
-		const readResult = await this.readDataObject();
-		if (readResult.error) return Promise.reject(readResult.error);
+        for (const key in updatedData) {
+            if (updatedData.hasOwnProperty(key)) {
+                const fieldValue = updatedData[key];
 
-		const dataObject: DataObject = readResult.json || {};
-		const dataCollection = dataObject[collectionName];
-		const targetSet = dataCollection.find(
-			(data: DataObject) => data.id === objectID,
-		);
-		if (!targetSet)
-			return Promise.reject(`Dataset with ID ${objectID} not found.`);
+                //Update the data field
+                dataToEdit[key] = fieldValue;
 
-		const targetProperties = Object.keys(targetSet);
+                //Check if the index object exists
+                const indexObject: IndexObject = jsonData[`${collectionName}_${key}_index`];
+                const indexedArray = indexObject?.[fieldValue] || [];
+                if (indexedArray.length > 0) {
+                    const matchingIndexes = indexedArray.filter((index) => index === fieldValue);
 
-		for (const property of targetProperties) {
-			delete targetSet[property];
-		}
+                    if (matchingIndexes.length > 0) {
+                        indexedArray.push(targetID);
+                        isIndexed = true;
+                    }
+                }
+            }
+        }
 
-		const filteredArray = dataCollection.filter(
-			(data: DataObject) => Object.keys(data).length > 0,
-		);
+        if (!isIndexed) {
+            //Fall back to regular search through the entire JSOn file
+            for (const key in updatedData) {
+                dataToEdit[key] = updatedData[key];
+            }
+        }
+        const writeResult = await this.saveJSONData(jsonData);
+        
+        if (writeResult.error) {
+            return Promise.reject(writeResult.error);
+        }
+        
+        return "JSON file has been updated successfully updated";
+    }
+    
+    /**
+     * Delete a collection from a JSON file.
+     * @returns {Promise<string>} Success / Error message.
+     */
+    async deleteObject(options: {
+        collectionName: string;
+        targetID: number
+    }): Promise<string> {
+        const { collectionName, targetID } = options;
+        const readResult = await this.readJSONData();
+        if (readResult.error) {
+            return Promise.reject(readResult.error);
+        }
 
-		dataObject[collectionName] = filteredArray;
+        const jsonData: JsonData = readResult.jsonData || {};
+        const dataCollection = jsonData[collectionName];
 
-		const writeResult = await this.saveDataObject(dataObject);
-		if (writeResult.error) return Promise.reject(writeResult.error);
+        if (!dataCollection) {
+            const errMessage = 'No collection with the provided name was found.';
+            return Promise.reject(errMessage);
+        }
 
-		return "JSON file has been updated successfully!";
-	}
+        const deleteDataset = dataCollection.find((data: JsonData) => data.id === targetID);
 
-	/**
-	 * Deletes specific properties from an existing dataset in the JSON file.
-	 * @returns {Promise<string>} Error / success message
-	 */
-	async delete(options: {
-		collectionName: string;
-		/** The ID of the object the property is on. */
-		objectID: number;
-		/** A list of keys that will be deleted from the object. */
-		targetKeys: string[];
-	}): Promise<string> {
-		const { collectionName, objectID, targetKeys } = options;
-		const readResult = await this.readDataObject();
-		if (readResult.error) return Promise.reject(readResult.error);
+        if (!deleteDataset) {
+            const errMessage = `Dataset with ID ${targetID} not found.`
+            return Promise.reject(errMessage);
+        }
 
-		const dataObject: DataObject = readResult.json || {};
-		const dataCollection = dataObject[collectionName];
-		const targetData = dataCollection.find(
-			(data: DataObject) => data.id === objectID,
-		);
-		if (!targetData)
-			return Promise.reject(`Dataset with ID ${objectID} not found.`);
+        const propertiesToDelete = Object.keys(deleteDataset);
 
-		for (const key of targetKeys) {
-			delete targetData[key];
-		}
+            for (const property of propertiesToDelete) {
+                delete deleteDataset[property];
+            }
 
-		const writeResult = await this.saveDataObject(dataObject);
-		if (writeResult.error) return Promise.reject(writeResult.error);
-		return "JSON file has been updated successfully!";
-	}
+            const filteredArray = dataCollection.filter((data: JsonData) => Object.keys(data).length > 0);
 
-	/**
+            jsonData[collectionName] = filteredArray;
+
+            const writeResult = await this.saveJSONData(jsonData);
+            if (writeResult.error) {
+                return Promise.reject(writeResult.error);
+            }
+            return "JSON file has been updated successfully!";
+    }
+
+    /**
+     * Delete specific properties from a dataset in the JSON file.
+     * @returns {Promise<string>} Success / Error message.
+     */
+    async delete(options: {
+        collectionName: string;
+        /** The ID of the object the property is on */
+        targetID: number;
+        /** The keys you would like to delete. */
+        targetKeys: string[];
+    }): Promise<string> {
+        const { collectionName, targetID, targetKeys } = options;
+        const readResult = await this.readJSONData();
+        if (readResult.error) {
+            return Promise.reject(readResult.error);
+        }
+
+        const jsonData: JsonData = readResult.jsonData || {};
+        const dataCollection = jsonData[collectionName];
+
+        if (!dataCollection) {
+            const errMessage = 'No collection with the provided name was found.'
+            return Promise.reject(errMessage)
+        }
+        const targetData = dataCollection.find((data: JsonData) => data.id === targetID);
+
+        if (!targetData) {
+            return Promise.reject(`Dataset with ID ${targetID} not found.`);
+        }
+
+        for (const key of targetKeys) {
+            delete targetData[key];
+        }
+
+        const writeResult = await this.saveJSONData(jsonData);
+        if (writeResult.error) {
+            return Promise.reject(writeResult.error);
+        }
+        return 'JSON file has been updated successfully!'
+    }
+
+    //Indexing
+
+    /**
 	 * Creates an index for faster searching
 	 * @returns {Promise<string>} Error / success message
 	 */
@@ -286,10 +315,10 @@ export class DoodleDB {
 		fieldName: string;
 	}): Promise<string> {
 		const { collectionName, fieldName } = options;
-		const readResult = await this.readDataObject();
+		const readResult = await this.readJSONData();
 		if (readResult.error) return Promise.reject(readResult.error);
 
-		const dataObject: DataObject = readResult.json || {};
+		const dataObject: JsonData= readResult.jsonData || {};
 		const dataCollection = dataObject[collectionName];
 		dataObject[`${collectionName}_${fieldName}_index`] ??= {};
 		const indexObject: IndexObject =
@@ -307,30 +336,30 @@ export class DoodleDB {
 			indexObject[fieldValue].push(data.id);
 		}
 
-		const writeResult = await this.saveDataObject(dataObject);
+		const writeResult = await this.saveJSONData(dataObject);
 		if (writeResult.error) return Promise.reject(writeResult.error);
 
 		return `Successfully indexed "${fieldName}" under collection: ${collectionName}`;
 	}
 
-	/** @ignore */
-	private async readDataObject(): Promise<DataOperationResult> {
+    /** @ignore */
+	private async readJSONData(): Promise<DataOperationResult> {
 		try {
 			const file = await readFile(this.path, "utf-8");
 			const json = JSON.parse(file);
-			return { json, ok: true };
+			return { jsonData: json, success: true };
 		} catch (error) {
-			return { error, ok: false };
+			return { error, success: false };
 		}
 	}
 
 	/** @ignore */
-	private async saveDataObject(data: DataObject): Promise<DataOperationResult> {
+	private async saveJSONData(data: JsonData): Promise<DataOperationResult> {
 		try {
 			await writeFile(this.path, JSON.stringify(data, null, 2));
-			return { ok: true };
+			return { success: true };
 		} catch (error) {
-			return { error, ok: false };
+			return { error, success: false };
 		}
 	}
 }

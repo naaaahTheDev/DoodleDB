@@ -4,12 +4,15 @@ export interface SearchQuery {
 export declare class DoodleDB {
     path: string;
     constructor(options: {
-        /** The path to the database. A file will be created here if it doesn't exist. */
+        /**
+         * The path to the database.
+         * A file will be created to the directory if it does not exist already.
+        */
         filePath: string;
     });
     /**
      * Pushes data to a collection in the JSON file.
-     * @returns {Promise<string>} Error / success message
+     * @returns {Promise<string>} Success / Error message
      */
     push(options: {
         collectionName: string;
@@ -19,6 +22,7 @@ export declare class DoodleDB {
         };
     }): Promise<string>;
     /**
+     *
      * Retrieves data from the JSON database based on a search query.
      * @returns An array of objects matching the search query.
      */
@@ -27,42 +31,42 @@ export declare class DoodleDB {
         searchQuery: SearchQuery;
     }): Promise<any[] | string>;
     /**
-     * Retrieve an entire collection from the JSON file
+     * Retrieves an entire collection from the JSON file.
+     * @returns The entire collection matching the collectionName.
      */
     getCollection(options: {
         collectionName: string;
-    }): Promise<any[]>;
+    }): Promise<any[] | string>;
     /**
      * Edit an object from an existing collection in the JSON file.
-     * @returns {Promise<string>} Error / success message
+     * @returns {Promise<string>} Success / Error message.
      */
     edit(options: {
         collectionName: string;
-        /** The ID of the object to edit inside the collection. */
-        objectID: number;
-        /** Data to add to the object with ID `objectID` */
-        editObject: {
+        /** The ID of the object to edit inside the collection */
+        targetID: number;
+        /** Data to add or replace */
+        updatedData: {
             [key: string]: string | number;
         };
     }): Promise<string>;
     /**
-     * Delete an object from a collection in the JSON file.
-     * @returns {Promise<string>} Error / success message
+     * Delete a collection from a JSON file.
+     * @returns {Promise<string>} Success / Error message.
      */
     deleteObject(options: {
         collectionName: string;
-        /** The ID of the object to delete. */
-        objectID: number;
+        targetID: number;
     }): Promise<string>;
     /**
-     * Deletes specific properties from an existing dataset in the JSON file.
-     * @returns {Promise<string>} Error / success message
+     * Delete specific properties from a dataset in the JSON file.
+     * @returns {Promise<string>} Success / Error message.
      */
     delete(options: {
         collectionName: string;
-        /** The ID of the object the property is on. */
-        objectID: number;
-        /** A list of keys that will be deleted from the object. */
+        /** The ID of the object the property is on */
+        targetID: number;
+        /** The keys you would like to delete. */
         targetKeys: string[];
     }): Promise<string>;
     /**
@@ -75,7 +79,7 @@ export declare class DoodleDB {
         fieldName: string;
     }): Promise<string>;
     /** @ignore */
-    private readDataObject;
+    private readJSONData;
     /** @ignore */
-    private saveDataObject;
+    private saveJSONData;
 }
